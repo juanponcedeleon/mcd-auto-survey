@@ -1,0 +1,19 @@
+<!--
+  Label Studio labeling interface for receipt field extraction.
+
+  Workflow: scripts/ocr_to_annotation.py pre-fills every OCR token as `O`; the
+  annotator draws rectangles over the six field types on the receipt image and
+  Label Studio records their coordinates + transcription. The export is then
+  converted back to token-level BIO tags by scripts/export_label_studio.py.
+-->
+<View>
+  <Image name="image" value="$ocr" zoom="true" zoomControl="true"/>
+  <RectangleLabels name="label" toName="image">
+    <Label value="SURVEY_CODE" background="#e6194b"/>
+    <Label value="STORE_NUM"   background="#3cb44b"/>
+    <Label value="DATE"        background="#4363d8"/>
+    <Label value="TIME"        background="#f58231"/>
+    <Label value="ORDER_ID"    background="#911eb4"/>
+    <Label value="TOTAL"       background="#46f0f0"/>
+  </RectangleLabels>
+</View>
