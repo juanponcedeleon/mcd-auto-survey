@@ -1,0 +1,24 @@
+# LayoutLMv3 receipt-NER fine-tuning config.
+# Reproduces the checkpoint documented in models/layoutlmv3-receipt-ner/.
+
+model_name: microsoft/layoutlmv3-base
+
+# Data
+data_dir: data
+project_root: .
+max_length: 512
+
+# Optimization
+learning_rate: 5e-5
+num_epochs: 40
+train_batch_size: 2
+eval_batch_size: 2
+grad_accum_steps: 4        # effective batch size = 8
+warmup_ratio: 0.1
+weight_decay: 0.01
+
+# Bookkeeping
+output_dir: models/layoutlmv3-receipt-ner
+logging_steps: 10
+report_to: none            # set to "wandb" to log a run
+seed: 42
