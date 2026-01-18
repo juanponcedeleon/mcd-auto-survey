@@ -1,0 +1,3 @@
+# Keeps the model directory tracked. The trained weights (model.safetensors,
+# preprocessor/tokenizer files) are produced by training and are gitignored;
+# only config.json, metrics.json and the model card are committed.

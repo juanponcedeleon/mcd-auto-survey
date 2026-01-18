@@ -1,0 +1,20 @@
+{
+  "base_model": "microsoft/layoutlmv3-base",
+  "best_epoch": 34,
+  "eval_loss": 0.2043,
+  "overall": {
+    "precision": 0.9486,
+    "recall": 0.9339,
+    "f1": 0.9412,
+    "support": 257
+  },
+  "per_entity": {
+    "SURVEY_CODE": {"precision": 0.9810, "recall": 0.9750, "f1": 0.9780, "support": 40},
+    "STORE_NUM":   {"precision": 0.9524, "recall": 0.9302, "f1": 0.9412, "support": 43},
+    "DATE":        {"precision": 0.9762, "recall": 0.9762, "f1": 0.9762, "support": 42},
+    "TIME":        {"precision": 0.9608, "recall": 0.9362, "f1": 0.9483, "support": 47},
+    "ORDER_ID":    {"precision": 0.8974, "recall": 0.8750, "f1": 0.8861, "support": 40},
+    "TOTAL":       {"precision": 0.9333, "recall": 0.9111, "f1": 0.9221, "support": 45}
+  },
+  "exact_match_survey_code": 0.95
+}

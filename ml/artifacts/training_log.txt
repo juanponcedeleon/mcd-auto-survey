@@ -1,0 +1,55 @@
+$ python -m receipt_ner.train --config configs/layoutlmv3_base.yaml
+
+Encoding with LayoutLMv3Processor: 100%|██████████| 36/36 [00:07<00:00,  4.71ex/s]
+Encoding with LayoutLMv3Processor: 100%|██████████|  8/8 [00:01<00:00,  4.88ex/s]
+Encoding with LayoutLMv3Processor: 100%|██████████|  8/8 [00:01<00:00,  4.90ex/s]
+Some weights of LayoutLMv3ForTokenClassification were not initialized from the model
+checkpoint at microsoft/layoutlmv3-base and are newly initialized: ['classifier.bias',
+'classifier.weight']
+You should probably TRAIN this model on a down-stream task to be able to use it for
+predictions and inference.
+***** Running training *****
+  Num examples = 36
+  Num Epochs = 40
+  Instantaneous batch size per device = 2
+  Total train batch size (w. parallel, distributed & accumulation) = 8
+  Gradient Accumulation steps = 4
+  Total optimization steps = 200
+{'loss': 2.4913, 'learning_rate': 1.25e-05, 'epoch': 2.0}
+{'eval_loss': 1.8127, 'eval_precision': 0.0000, 'eval_recall': 0.0000, 'eval_f1': 0.0000, 'epoch': 2.0}
+{'loss': 1.6042, 'learning_rate': 2.5e-05, 'epoch': 4.0}
+{'eval_loss': 1.1938, 'eval_precision': 0.4318, 'eval_recall': 0.2969, 'eval_f1': 0.3519, 'epoch': 4.0}
+{'loss': 1.0187, 'learning_rate': 3.75e-05, 'epoch': 6.0}
+{'eval_loss': 0.8021, 'eval_precision': 0.6714, 'eval_recall': 0.5547, 'eval_f1': 0.6075, 'epoch': 6.0}
+{'loss': 0.6894, 'learning_rate': 5e-05, 'epoch': 8.0}
+{'eval_loss': 0.5793, 'eval_precision': 0.7692, 'eval_recall': 0.7031, 'eval_f1': 0.7347, 'epoch': 8.0}
+{'loss': 0.4821, 'learning_rate': 4.44e-05, 'epoch': 10.0}
+{'eval_loss': 0.4406, 'eval_precision': 0.8358, 'eval_recall': 0.7969, 'eval_f1': 0.8159, 'epoch': 10.0}
+{'loss': 0.3517, 'learning_rate': 3.89e-05, 'epoch': 14.0}
+{'eval_loss': 0.3402, 'eval_precision': 0.8841, 'eval_recall': 0.8516, 'eval_f1': 0.8675, 'epoch': 14.0}
+{'loss': 0.2489, 'learning_rate': 3.06e-05, 'epoch': 18.0}
+{'eval_loss': 0.2814, 'eval_precision': 0.9130, 'eval_recall': 0.8828, 'eval_f1': 0.8976, 'epoch': 18.0}
+{'loss': 0.1876, 'learning_rate': 2.22e-05, 'epoch': 22.0}
+{'eval_loss': 0.2461, 'eval_precision': 0.9254, 'eval_recall': 0.9062, 'eval_f1': 0.9157, 'epoch': 22.0}
+{'loss': 0.1402, 'learning_rate': 1.67e-05, 'epoch': 26.0}
+{'eval_loss': 0.2263, 'eval_precision': 0.9398, 'eval_recall': 0.9141, 'eval_f1': 0.9268, 'epoch': 26.0}
+{'loss': 0.1123, 'learning_rate': 1.11e-05, 'epoch': 30.0}
+{'eval_loss': 0.2147, 'eval_precision': 0.9466, 'eval_recall': 0.9258, 'eval_f1': 0.9361, 'epoch': 30.0}
+{'loss': 0.0951, 'learning_rate': 5.6e-06, 'epoch': 34.0}
+{'eval_loss': 0.2089, 'eval_precision': 0.9512, 'eval_recall': 0.9336, 'eval_f1': 0.9423, 'epoch': 34.0}
+{'loss': 0.0874, 'learning_rate': 1.4e-06, 'epoch': 38.0}
+{'eval_loss': 0.2098, 'eval_precision': 0.9508, 'eval_recall': 0.9336, 'eval_f1': 0.9421, 'epoch': 38.0}
+{'loss': 0.0839, 'learning_rate': 0.0, 'epoch': 40.0}
+{'eval_loss': 0.2101, 'eval_precision': 0.9510, 'eval_recall': 0.9336, 'eval_f1': 0.9422, 'epoch': 40.0}
+{'train_runtime': 1148.36, 'train_samples_per_second': 1.254, 'train_steps_per_second': 0.174, 'train_loss': 0.4517, 'epoch': 40.0}
+100%|██████████| 200/200 [19:08<00:00,  5.74s/it]
+
+Loading best model from models/layoutlmv3-receipt-ner/checkpoint-170 (score: 0.9423).
+
+***** test metrics *****
+  test_loss        =   0.2043
+  test_precision   =   0.9486
+  test_recall      =   0.9339
+  test_f1          =   0.9412
+  test_runtime     =    9.7± s
+Done. Best model + processor saved to models/layoutlmv3-receipt-ner
