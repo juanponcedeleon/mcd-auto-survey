@@ -24,7 +24,7 @@ function Landing() {
             </p>
 
             <div className="cta-section">
-            <a href="/login" className="login-button">
+            <a href="/dashboard" className="login-button">
                 {/* <span>🏪</span> */}
                 Login to your Store
             </a>
