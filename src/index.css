@@ -173,6 +173,273 @@ body {
   margin-top: var(--spacing-xs);
 }
 
+.input-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  margin: var(--spacing-md) 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.input-divider::before,
+.input-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--border-color);
+}
+
+.scan-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  width: 100%;
+  padding: var(--spacing-md);
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  border: 2px dashed var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.scan-button:hover {
+  border-color: var(--primary-color);
+  background-color: var(--hover-color);
+}
+
+/* Receipt scanner modal */
+.scanner-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+}
+
+.scanner-modal {
+  width: 100%;
+  max-width: 420px;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-lg);
+  overflow: hidden;
+}
+
+.scanner-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.scanner-header h3 {
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+}
+
+.scanner-close {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.scanner-close:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.scanner-viewport {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  background-color: #000;
+  overflow: hidden;
+}
+
+.scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.scanner-video.ready {
+  opacity: 1;
+}
+
+.scanner-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(145deg, #1a1a1a 0%, #2d2d2d 50%, #1a1a1a 100%);
+}
+
+.scanner-fallback-noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.15;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: scannerNoise 0.5s steps(4) infinite;
+}
+
+@keyframes scannerNoise {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-2%, 1%); }
+  50% { transform: translate(1%, -2%); }
+  75% { transform: translate(2%, 2%); }
+}
+
+.scanner-fallback-label {
+  position: relative;
+  z-index: 1;
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+}
+
+.scanner-frame {
+  position: absolute;
+  inset: 12%;
+  pointer-events: none;
+}
+
+.scanner-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: var(--primary-color);
+  border-style: solid;
+}
+
+.scanner-corner.tl { top: 0; left: 0; border-width: 3px 0 0 3px; }
+.scanner-corner.tr { top: 0; right: 0; border-width: 3px 3px 0 0; }
+.scanner-corner.bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; }
+.scanner-corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; }
+
+.scanner-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--primary-color), transparent);
+  box-shadow: 0 0 12px var(--primary-color);
+  animation: scannerSweep 1.4s ease-in-out infinite;
+}
+
+@keyframes scannerSweep {
+  0%, 100% { top: 0; opacity: 0.6; }
+  50% { top: calc(100% - 2px); opacity: 1; }
+}
+
+.scanner-status {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: var(--spacing-md);
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
+}
+
+.scanner-status-text {
+  display: block;
+  text-align: center;
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.scanner-status-text.scanning {
+  color: var(--primary-color);
+  animation: scannerPulse 1s ease-in-out infinite;
+}
+
+.scanner-status-text.detected {
+  color: var(--success-color);
+  font-weight: 600;
+}
+
+@keyframes scannerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.scanner-result {
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.scanner-result-label {
+  display: block;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--spacing-xs);
+}
+
+.scanner-result-code {
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: var(--font-size-base);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.scanner-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-lg) var(--spacing-lg);
+}
+
+.scanner-btn {
+  flex: 1;
+  padding: var(--spacing-md);
+  border-radius: var(--border-radius-md);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.scanner-btn:active {
+  transform: translateY(1px);
+}
+
+.scanner-btn.primary {
+  background-color: var(--primary-color);
+  color: var(--bg-primary);
+}
+
+.scanner-btn.primary:hover {
+  background-color: #aa9311;
+}
+
+.scanner-btn.secondary {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.scanner-btn.secondary:hover {
+  background-color: var(--hover-color);
+  color: var(--text-primary);
+}
+
 /* Queue header */
 .queue-header {
   display: flex;
