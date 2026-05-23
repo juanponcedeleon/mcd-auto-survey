@@ -246,7 +246,7 @@ function Dashboard() {
 
   return (
     <div className="app">
-      <Protected />
+      <Protected setVerified={setVerified} />
       <div className="container">
         <header className="header">
           <h1>McDonald's Survey Automation</h1>

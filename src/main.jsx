@@ -13,8 +13,9 @@ createRoot(document.getElementById('root')).render(
         <NavLink to="/login" className="navlink primary-btn">Login</NavLink>
       </nav> */}
       <Routes>
-        <Route path="/" element={<Landing />}/>
+        <Route path="/" element={<Dashboard />}/>
         <Route path="/dashboard" element={<Dashboard />}/>
+        <Route path="/landing" element={<Landing />}/>
         <Route path="/login" element={<Login />}/>
       </Routes>
     </BrowserRouter>
