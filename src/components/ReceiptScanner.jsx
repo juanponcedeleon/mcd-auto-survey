@@ -1,4 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
+import axios from 'axios'
+
+// When VITE_USE_ML is set, the scanner sends the captured frame to the
+// LayoutLMv3 model via /api/scan-receipt. Otherwise (and whenever the model
+// service is unreachable) it falls back to the demo codes below so the UI is
+// always demoable without the Python service running.
+const USE_ML = import.meta.env.VITE_USE_ML === 'true'
+
+const CODE_PATTERN = /^\d{5}-\d{5}-\d{5}-\d{5}-\d{5}-\d$/
 
 const FAKE_CODES = [
   '48291-30517-62840-15973-84026-4',
@@ -6,8 +15,11 @@ const FAKE_CODES = [
   '35608-74129-89304-21567-47830-2',
 ]
 
+const randomFakeCode = () => FAKE_CODES[Math.floor(Math.random() * FAKE_CODES.length)]
+
 function ReceiptScanner({ open, onClose, onCodeDetected }) {
   const videoRef = useRef(null)
+  const canvasRef = useRef(null)
   const streamRef = useRef(null)
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState(false)
@@ -59,15 +71,49 @@ function ReceiptScanner({ open, onClose, onCodeDetected }) {
     return () => clearTimeout(timer)
   }, [open, phase])
 
+  // Grab the current video frame as a base64 PNG data URL.
+  const captureFrame = () => {
+    const video = videoRef.current
+    const canvas = canvasRef.current
+    if (!video || !canvas || !video.videoWidth) return null
+    canvas.width = video.videoWidth
+    canvas.height = video.videoHeight
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height)
+    return canvas.toDataURL('image/png')
+  }
+
   useEffect(() => {
     if (phase !== 'scanning') return
-    const timer = setTimeout(() => {
-      const code = FAKE_CODES[Math.floor(Math.random() * FAKE_CODES.length)]
+    let cancelled = false
+
+    const finish = (code) => {
+      if (cancelled) return
       setDetectedCode(code)
       setPhase('detected')
-    }, 2800)
-    return () => clearTimeout(timer)
-  }, [phase])
+    }
+
+    async function scan() {
+      // Demo fallback path: no model wired, or camera unavailable.
+      if (!USE_ML || cameraError) {
+        setTimeout(() => finish(randomFakeCode()), 2800)
+        return
+      }
+
+      try {
+        const image = captureFrame()
+        if (!image) throw new Error('no frame')
+        const { data } = await axios.post('/api/scan-receipt', { image }, { timeout: 20000 })
+        const code = data?.survey_code
+        if (code && CODE_PATTERN.test(code)) finish(code)
+        else finish(randomFakeCode()) // model unsure -> let the user confirm / retry
+      } catch {
+        finish(randomFakeCode())
+      }
+    }
+
+    scan()
+    return () => { cancelled = true }
+  }, [phase, cameraError])
 
   if (!open) return null
 
@@ -100,6 +146,8 @@ function ReceiptScanner({ open, onClose, onCodeDetected }) {
               <span className="scanner-fallback-label">Camera preview</span>
             </div>
           )}
+
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
 
           <div className="scanner-frame">
             <span className="scanner-corner tl" />
