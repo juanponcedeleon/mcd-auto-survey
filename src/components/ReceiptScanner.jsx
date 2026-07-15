@@ -1,24 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
 
-const FAKE_CODES = [
-  '48291-30517-62840-15973-84026-4',
-  '71903-28465-50192-63748-92015-7',
-  '35608-74129-89304-21567-47830-2',
-]
+const DEFAULT_BACKEND_URL = import.meta.env.VITE_RECEIPT_BACKEND_URL || 'http://127.0.0.1:8000'
 
-function ReceiptScanner({ open, onClose, onCodeDetected }) {
+function ReceiptScanner({ open, onClose, onCodeDetected, onReceiptParsed }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
+  const [capturedFile, setCapturedFile] = useState(null)
+  const [previewUrl, setPreviewUrl] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState('')
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState(false)
-  const [phase, setPhase] = useState('align') // align | scanning | detected
-  const [detectedCode, setDetectedCode] = useState('')
+  const [phase, setPhase] = useState('capture') // capture | preview
 
   useEffect(() => {
     if (!open) return
 
-    setPhase('align')
-    setDetectedCode('')
+    setPhase('capture')
+    setCapturedFile(null)
+    setPreviewUrl('')
+    setSubmitError('')
+    setIsSubmitting(false)
     setCameraReady(false)
     setCameraError(false)
 
@@ -45,7 +47,11 @@ function ReceiptScanner({ open, onClose, onCodeDetected }) {
       }
     }
 
-    startCamera()
+    if (navigator.mediaDevices?.getUserMedia) {
+      startCamera()
+    } else {
+      setCameraError(true)
+    }
     return () => {
       cancelled = true
       streamRef.current?.getTracks().forEach(t => t.stop())
@@ -54,95 +60,183 @@ function ReceiptScanner({ open, onClose, onCodeDetected }) {
   }, [open])
 
   useEffect(() => {
-    if (!open || phase !== 'align') return
-    const timer = setTimeout(() => setPhase('scanning'), 1200)
-    return () => clearTimeout(timer)
-  }, [open, phase])
-
-  useEffect(() => {
-    if (phase !== 'scanning') return
-    const timer = setTimeout(() => {
-      const code = FAKE_CODES[Math.floor(Math.random() * FAKE_CODES.length)]
-      setDetectedCode(code)
-      setPhase('detected')
-    }, 2800)
-    return () => clearTimeout(timer)
-  }, [phase])
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl)
+      }
+    }
+  }, [previewUrl])
 
   if (!open) return null
 
-  const handleUseCode = () => {
-    onCodeDetected(detectedCode)
+  const handleClose = () => {
+    streamRef.current?.getTracks().forEach(t => t.stop())
+    streamRef.current = null
     onClose()
   }
 
+  const parseFile = async (file) => {
+    setSubmitError('')
+    setIsSubmitting(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', file, file.name || 'receipt.jpg')
+
+      const response = await fetch(`${DEFAULT_BACKEND_URL}/parse-receipt`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      let payload = null
+      try {
+        payload = await response.json()
+      } catch {
+        payload = null
+      }
+
+      if (!response.ok) {
+        throw new Error(payload?.detail || payload?.error || 'Unable to parse receipt')
+      }
+
+      const surveyCode = payload?.fields?.survey_code?.value
+      if (surveyCode) {
+        onCodeDetected?.(surveyCode)
+      }
+      onReceiptParsed?.(payload)
+      handleClose()
+    } catch (error) {
+      setSubmitError(error.message || 'Unable to parse receipt')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleCapture = async () => {
+    const videoElement = videoRef.current
+    if (!videoElement) return
+    const canvas = document.createElement('canvas')
+    canvas.width = videoElement.videoWidth || 1280
+    canvas.height = videoElement.videoHeight || 720
+    const context = canvas.getContext('2d')
+    if (!context) {
+      setSubmitError('Failed to capture camera frame')
+      return
+    }
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height)
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.92))
+    if (!blob) {
+      setSubmitError('Could not capture receipt image')
+      return
+    }
+    const file = new File([blob], `receipt-${Date.now()}.jpg`, { type: 'image/jpeg' })
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    setCapturedFile(file)
+    setPreviewUrl(URL.createObjectURL(file))
+    setPhase('preview')
+  }
+
+  const handleFileSelected = (event) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+    if (!file.type.startsWith('image/')) {
+      setSubmitError('Please select an image file.')
+      return
+    }
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+    }
+    setSubmitError('')
+    setCapturedFile(file)
+    setPreviewUrl(URL.createObjectURL(file))
+    setPhase('preview')
+  }
+
+  const resetCapture = () => {
+    setCapturedFile(null)
+    setSubmitError('')
+    setPhase('capture')
+  }
+
   return (
-    <div className="scanner-overlay" onClick={onClose}>
+    <div className="scanner-overlay" onClick={handleClose}>
       <div className="scanner-modal" onClick={e => e.stopPropagation()}>
         <div className="scanner-header">
-          <h3>Scan Receipt</h3>
-          <button type="button" className="scanner-close" onClick={onClose} aria-label="Close">
+          <h3>Parse Receipt</h3>
+          <button type="button" className="scanner-close" onClick={handleClose} aria-label="Close">
             ×
           </button>
         </div>
 
         <div className="scanner-viewport">
-          {!cameraError ? (
+          {!cameraError && phase === 'capture' ? (
             <video
               ref={videoRef}
               className={`scanner-video ${cameraReady ? 'ready' : ''}`}
               playsInline
               muted
             />
+          ) : phase === 'preview' && previewUrl ? (
+            <img src={previewUrl} alt="Receipt preview" className="scanner-preview-image" />
           ) : (
             <div className="scanner-fallback">
-              <div className="scanner-fallback-noise" />
-              <span className="scanner-fallback-label">Camera preview</span>
+              <span className="scanner-fallback-label">Camera unavailable. Upload a receipt image instead.</span>
             </div>
           )}
 
-          <div className="scanner-frame">
-            <span className="scanner-corner tl" />
-            <span className="scanner-corner tr" />
-            <span className="scanner-corner bl" />
-            <span className="scanner-corner br" />
-            {phase === 'scanning' && <div className="scanner-line" />}
-          </div>
+          {phase === 'capture' && !cameraError && (
+            <div className="scanner-frame">
+              <span className="scanner-corner tl" />
+              <span className="scanner-corner tr" />
+              <span className="scanner-corner bl" />
+              <span className="scanner-corner br" />
+            </div>
+          )}
 
           <div className="scanner-status">
-            {phase === 'align' && (
-              <span className="scanner-status-text">Align receipt within frame</span>
+            {phase === 'capture' && (
+              <span className="scanner-status-text">Align your receipt, then capture the image.</span>
             )}
-            {phase === 'scanning' && (
-              <span className="scanner-status-text scanning">Scanning receipt…</span>
-            )}
-            {phase === 'detected' && (
-              <span className="scanner-status-text detected">Survey code found</span>
+            {phase === 'preview' && (
+              <span className="scanner-status-text detected">Image ready to parse</span>
             )}
           </div>
         </div>
 
-        {phase === 'detected' && (
-          <div className="scanner-result">
-            <span className="scanner-result-label">Detected code</span>
-            <code className="scanner-result-code">{detectedCode}</code>
-          </div>
-        )}
+        <div className="scanner-upload-row">
+          <label htmlFor="receipt-file" className="scanner-upload-label">Upload from file</label>
+          <input id="receipt-file" type="file" accept="image/*" onChange={handleFileSelected} />
+        </div>
+
+        {submitError && <div className="error-message scanner-error">{submitError}</div>}
 
         <div className="scanner-actions">
-          {phase === 'detected' ? (
+          {phase === 'preview' ? (
             <>
-              <button type="button" className="scanner-btn secondary" onClick={() => setPhase('align')}>
-                Scan again
+              <button type="button" className="scanner-btn secondary" onClick={resetCapture} disabled={isSubmitting}>
+                Retake
               </button>
-              <button type="button" className="scanner-btn primary" onClick={handleUseCode}>
-                Add to Queue
+              <button
+                type="button"
+                className="scanner-btn primary"
+                onClick={() => capturedFile && parseFile(capturedFile)}
+                disabled={!capturedFile || isSubmitting}
+              >
+                {isSubmitting ? 'Parsing…' : 'Parse Receipt'}
               </button>
             </>
           ) : (
-            <button type="button" className="scanner-btn secondary" onClick={onClose}>
-              Cancel
-            </button>
+            <>
+              {!cameraError && (
+                <button type="button" className="scanner-btn primary" onClick={handleCapture} disabled={!cameraReady}>
+                  Capture
+                </button>
+              )}
+              <button type="button" className="scanner-btn secondary" onClick={handleClose}>
+                Cancel
+              </button>
+            </>
           )}
         </div>
       </div>

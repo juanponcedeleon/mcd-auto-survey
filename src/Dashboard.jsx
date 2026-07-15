@@ -11,6 +11,7 @@ function Dashboard() {
   const [inputError, setInputError] = useState('')
   const [verified, setVerified] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
+  const [parsedReceipt, setParsedReceipt] = useState(null)
   const isProcessingRef = useRef(false);
 
 
@@ -82,6 +83,10 @@ function Dashboard() {
   const handleScannedCode = (code) => {
     setInputCode(code)
     addCodeToQueue(code)
+  }
+
+  const handleReceiptParsed = (payload) => {
+    setParsedReceipt(payload)
   }
 
 
@@ -278,7 +283,7 @@ function Dashboard() {
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="currentColor" d="M4 6h2v12H4zm14 0h2v12h-2zM7 6h10v2H7zm0 10h10v2H7zM9 4h6v2H9zm0 14h6v2H9z"/>
             </svg>
-            Scan Receipt
+            Capture & Parse Receipt
           </button>
           {inputError && <div className="error-message">{inputError}</div>}
         </form>
@@ -287,7 +292,38 @@ function Dashboard() {
           open={scannerOpen}
           onClose={() => setScannerOpen(false)}
           onCodeDetected={handleScannedCode}
+          onReceiptParsed={handleReceiptParsed}
         />
+
+        {parsedReceipt && (
+          <section className="parsed-receipt-card">
+            <div className="queue-header">
+              <h2>Parsed Receipt</h2>
+            </div>
+            <div className="parsed-grid">
+              <p><strong>Merchant:</strong> {parsedReceipt.fields?.merchant?.value || 'N/A'}</p>
+              <p><strong>Date:</strong> {parsedReceipt.fields?.date?.value || 'N/A'}</p>
+              <p><strong>Subtotal:</strong> {parsedReceipt.fields?.subtotal?.value ?? 'N/A'}</p>
+              <p><strong>Tax:</strong> {parsedReceipt.fields?.tax?.value ?? 'N/A'}</p>
+              <p><strong>Total:</strong> {parsedReceipt.fields?.total?.value ?? 'N/A'}</p>
+              <p><strong>Survey Code:</strong> {parsedReceipt.fields?.survey_code?.value || 'N/A'}</p>
+              <p><strong>Confidence:</strong> {Math.round((parsedReceipt.confidence || 0) * 100)}%</p>
+            </div>
+            {parsedReceipt.fields?.line_items?.length > 0 && (
+              <div className="parsed-line-items">
+                <h3>Line Items</h3>
+                <ul>
+                  {parsedReceipt.fields.line_items.map((item, index) => (
+                    <li key={`${item.description}-${index}`}>
+                      <span>{item.description}</span>
+                      <span>${Number(item.amount || 0).toFixed(2)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </section>
+        )}
 
         <div className="queue-header">
           <h2>Queue ({queue.length})</h2>

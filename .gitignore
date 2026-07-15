@@ -9,6 +9,9 @@ lerna-debug.log*
 
 # === Dependency directories ===
 node_modules/
+.venv/
+__pycache__/
+*.pyc
 
 # === Build output ===
 dist/
