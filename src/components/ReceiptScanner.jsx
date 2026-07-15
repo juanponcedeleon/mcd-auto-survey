@@ -12,6 +12,7 @@ function ReceiptScanner({ open, onClose, onCodeDetected, onReceiptParsed }) {
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState(false)
   const [phase, setPhase] = useState('capture') // capture | preview
+  const safePreviewUrl = previewUrl.startsWith('blob:') ? previewUrl : ''
 
   useEffect(() => {
     if (!open) return
@@ -177,8 +178,8 @@ function ReceiptScanner({ open, onClose, onCodeDetected, onReceiptParsed }) {
               playsInline
               muted
             />
-          ) : phase === 'preview' && previewUrl ? (
-            <img src={previewUrl} alt="Receipt preview" className="scanner-preview-image" />
+          ) : phase === 'preview' && safePreviewUrl ? (
+            <img src={safePreviewUrl} alt="Receipt preview" className="scanner-preview-image" />
           ) : (
             <div className="scanner-fallback">
               <span className="scanner-fallback-label">Camera unavailable. Upload a receipt image instead.</span>
