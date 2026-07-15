@@ -5,21 +5,19 @@ const DEFAULT_BACKEND_URL = import.meta.env.VITE_RECEIPT_BACKEND_URL || 'http://
 function ReceiptScanner({ open, onClose, onCodeDetected, onReceiptParsed }) {
   const videoRef = useRef(null)
   const streamRef = useRef(null)
+  const previewCanvasRef = useRef(null)
   const [capturedFile, setCapturedFile] = useState(null)
-  const [previewUrl, setPreviewUrl] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
   const [cameraReady, setCameraReady] = useState(false)
   const [cameraError, setCameraError] = useState(false)
   const [phase, setPhase] = useState('capture') // capture | preview
-  const safePreviewUrl = previewUrl.startsWith('blob:') ? previewUrl : ''
 
   useEffect(() => {
     if (!open) return
 
     setPhase('capture')
     setCapturedFile(null)
-    setPreviewUrl('')
     setSubmitError('')
     setIsSubmitting(false)
     setCameraReady(false)
@@ -60,20 +58,26 @@ function ReceiptScanner({ open, onClose, onCodeDetected, onReceiptParsed }) {
     }
   }, [open])
 
-  useEffect(() => {
-    return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-      }
-    }
-  }, [previewUrl])
-
   if (!open) return null
 
   const handleClose = () => {
     streamRef.current?.getTracks().forEach(t => t.stop())
     streamRef.current = null
     onClose()
+  }
+
+  const drawPreview = async (file) => {
+    const previewCanvas = previewCanvasRef.current
+    if (!previewCanvas) return
+    const context = previewCanvas.getContext('2d')
+    if (!context) return
+    const bitmap = await createImageBitmap(file)
+    const targetWidth = previewCanvas.clientWidth || 360
+    const scale = targetWidth / bitmap.width
+    previewCanvas.width = targetWidth
+    previewCanvas.height = Math.max(1, Math.round(bitmap.height * scale))
+    context.clearRect(0, 0, previewCanvas.width, previewCanvas.height)
+    context.drawImage(bitmap, 0, 0, previewCanvas.width, previewCanvas.height)
   }
 
   const parseFile = async (file) => {
@@ -130,11 +134,8 @@ function ReceiptScanner({ open, onClose, onCodeDetected, onReceiptParsed }) {
       return
     }
     const file = new File([blob], `receipt-${Date.now()}.jpg`, { type: 'image/jpeg' })
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
     setCapturedFile(file)
-    setPreviewUrl(URL.createObjectURL(file))
+    await drawPreview(file)
     setPhase('preview')
   }
 
@@ -145,13 +146,11 @@ function ReceiptScanner({ open, onClose, onCodeDetected, onReceiptParsed }) {
       setSubmitError('Please select an image file.')
       return
     }
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
     setSubmitError('')
     setCapturedFile(file)
-    setPreviewUrl(URL.createObjectURL(file))
-    setPhase('preview')
+    drawPreview(file)
+      .then(() => setPhase('preview'))
+      .catch(() => setSubmitError('Could not preview selected image.'))
   }
 
   const resetCapture = () => {
@@ -178,8 +177,8 @@ function ReceiptScanner({ open, onClose, onCodeDetected, onReceiptParsed }) {
               playsInline
               muted
             />
-          ) : phase === 'preview' && safePreviewUrl ? (
-            <img src={safePreviewUrl} alt="Receipt preview" className="scanner-preview-image" />
+          ) : phase === 'preview' ? (
+            <canvas ref={previewCanvasRef} className="scanner-preview-image" aria-label="Receipt preview image" />
           ) : (
             <div className="scanner-fallback">
               <span className="scanner-fallback-label">Camera unavailable. Upload a receipt image instead.</span>
